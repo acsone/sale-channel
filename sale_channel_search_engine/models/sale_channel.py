@@ -22,3 +22,13 @@ class SaleChannel(models.Model):
 
         action["domain"] = [("index_id", "in", indexes)]
         return action
+
+    def synchronize_all_indexes(self):
+        for channel in self.sudo().filtered("search_engine_id"):
+            indexes = channel.search_engine_id.index_ids
+            bindings = indexes._add_records_from_sale_channel(channel)
+            all_bindings = self.env["se.binding"].search(
+                [("index_id", "in", indexes.ids)]
+            )
+            obsolete_bindings = all_bindings - bindings
+            obsolete_bindings.write({"state": "to_delete"})
